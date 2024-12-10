@@ -171,8 +171,8 @@ def tensor_map(
     ) -> None:
         # TODO: Implement for Task 3.1.
         if (
-            len(out_strides) != len(in_strides) 
-            or (out_strides != in_strides).any() 
+            len(out_strides) != len(in_strides)
+            or (out_strides != in_strides).any()
             or (out_shape != in_shape).any()
         ):
             for i in prange(len(out)):
@@ -248,6 +248,7 @@ def tensor_zip(
             for i in prange(len(out)):
                 out[i] = fn(a_storage[i], b_storage[i])
         # raise NotImplementedError("Need to implement for Task 3.1")
+
     return njit(_zip, parallel=True)  # type: ignore
 
 
@@ -368,7 +369,7 @@ def _tensor_matrix_multiply(
                     acc += a_storage[a_inner] * b_storage[b_inner]
                     a_inner += a_strides[2]
                     b_inner += b_strides[1]
-                out_position =(
+                out_position = (
                     i * out_strides[0] + j * out_strides[1] + k * out_strides[2]
                 )
                 # Store the result in the output tensor

@@ -42,7 +42,10 @@ class Conv2d(minitorch.Module):
 
     def forward(self, input):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        conv_output = minitorch.conv2d(input, self.weights.value)
+        output = conv_output + self.bias.value
+        return output
+        # raise NotImplementedError("Need to implement for Task 4.5")
 
 
 class Network(minitorch.Module):
@@ -68,11 +71,37 @@ class Network(minitorch.Module):
         self.out = None
 
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        self.num_classes = C
+
+        #
+        self.conv1 = Conv2d(in_channels=1, out_channels=4, kh=3, kw=3)
+        self.conv2 = Conv2d(in_channels=4, out_channels=8, kh=3, kw=3)
+
+        self.linear1 = Linear(in_size=392, out_size=64)
+        self.linear2 = Linear(in_size=64, out_size=self.num_classes)
+        # raise NotImplementedError("Need to implement for Task 4.5")
 
     def forward(self, x):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        # 1. Apply a convolution with 4 output channels and a 3x3 kernel followed by a ReLU (save to self.mid)
+        x = self.conv1.forward(x).relu()
+        self.mid = x
+        # 2. Apply a convolution with 8 output channels and a 3x3 kernel followed by a ReLU (save to self.out)
+        x = self.conv2.forward(x).relu()
+        self.out = x
+        # 3. Apply 2D pooling (either Avg or Max) with 4x4 kernel.
+        x = minitorch.avgpool2d(x, (4, 4))
+        # 4. Flatten channels, height, and width. (Should be size BATCHx392)
+        x = x.view(BATCH, 392)
+        # 5. Apply a Linear to size 64 followed by Dropout with rate 25%
+        x = self.linear1.forward(x)
+        x = minitorch.dropout(x, 0.25, ignore=not self.training)
+        # 6. Apply a Linear to size C (number of classes).
+        x = self.linear2.forward(x)
+        # 7. Apply a logsoftmax over the class dimension.
+        out = minitorch.logsoftmax(x, dim=1)
+        return out
+        # raise NotImplementedError("Need to implement for Task 4.5")
 
 
 def make_mnist(start, stop):
@@ -99,7 +128,7 @@ class ImageTrain:
         return self.model.forward(minitorch.tensor([x], backend=BACKEND))
 
     def train(
-        self, data_train, data_val, learning_rate, max_epochs=500, log_fn=default_log_fn
+        self, data_train, data_val, learning_rate, max_epochs=25, log_fn=default_log_fn
     ):
         (X_train, y_train) = data_train
         (X_val, y_val) = data_val
