@@ -35,7 +35,10 @@ class Conv1d(minitorch.Module):
 
     def forward(self, input):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        conv_output = minitorch.conv1d(input, self.weights.value)
+        output = conv_output + self.bias.value
+        return output
+        # raise NotImplementedError("Need to implement for Task 4.5")
 
 
 class CNNSentimentKim(minitorch.Module):
@@ -61,15 +64,49 @@ class CNNSentimentKim(minitorch.Module):
     ):
         super().__init__()
         self.feature_map_size = feature_map_size
+
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        self.num_classes = 1 # binary classification
+        self.dropout = dropout
+
+        # 1D Convolutions for each filter size
+        self.conv1d1 = Conv1d(embedding_size, feature_map_size, filter_sizes[0])
+        self.conv1d2 = Conv1d(embedding_size, feature_map_size, filter_sizes[1])
+        self.conv1d3 = Conv1d(embedding_size, feature_map_size, filter_sizes[2])
+
+        # Fully connected layer for classification
+        self.linear = Linear(self.feature_map_size, self.num_classes)
+        # raise NotImplementedError("Need to implement for Task 4.5")
 
     def forward(self, embeddings):
         """
         embeddings tensor: [batch x sentence length x embedding dim]
         """
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        # Rearrange embeddings to [batch, embedding_dim, sentence_length] for Conv1d
+        embeddings = embeddings.permute(0, 2, 1)
+
+        # 1. Apply a 1d convolution with input_channels=embedding_dim
+        # feature_map_size=100 output channels and [3, 4, 5]-sized kernels
+        # followed by a non-linear activation function (the paper uses tanh, we apply a ReLu)
+        conv1 = self.conv1d1.forward(embeddings).relu()
+        conv2 = self.conv1d2.forward(embeddings).relu()
+        conv3 = self.conv1d3.forward(embeddings).relu()
+
+        # 2. Apply max-over-time across each feature map
+        conv1_out = minitorch.max(conv1, dim=2)
+        conv2_out = minitorch.max(conv2, dim=2)
+        conv3_out = minitorch.max(conv3, dim=2)
+        out = conv1_out + conv2_out + conv3_out
+
+        # 3. Apply a Linear to size C (number of classes) followed by Dropout with rate 25%
+        out = out.view(embeddings.shape[0], self.feature_map_size)
+        out = minitorch.dropout(out, self.dropout, ignore=not self.training)
+        out = self.linear.forward(out)
+
+        # 4. Apply a sigmoid over the class dimension.
+        return out.sigmoid().view(embeddings.shape[0])
+        # raise NotImplementedError("Need to implement for Task 4.5")
 
 
 # Evaluation helper methods
@@ -256,7 +293,7 @@ if __name__ == "__main__":
     train_size = 450
     validation_size = 100
     learning_rate = 0.01
-    max_epochs = 250
+    max_epochs = 50
 
     (X_train, y_train), (X_val, y_val) = encode_sentiment_data(
         load_dataset("glue", "sst2"),
