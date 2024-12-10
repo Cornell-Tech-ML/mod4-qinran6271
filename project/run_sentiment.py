@@ -101,8 +101,8 @@ class CNNSentimentKim(minitorch.Module):
 
         # 3. Apply a Linear to size C (number of classes) followed by Dropout with rate 25%
         out = out.view(embeddings.shape[0], self.feature_map_size)
-        out = minitorch.dropout(out, self.dropout, ignore=not self.training)
         out = self.linear.forward(out)
+        out = minitorch.dropout(out, self.dropout, ignore=not self.training)
 
         # 4. Apply a sigmoid over the class dimension.
         return out.sigmoid().view(embeddings.shape[0])
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     train_size = 450
     validation_size = 100
     learning_rate = 0.01
-    max_epochs = 50
+    max_epochs = 250
 
     (X_train, y_train), (X_val, y_val) = encode_sentiment_data(
         load_dataset("glue", "sst2"),
